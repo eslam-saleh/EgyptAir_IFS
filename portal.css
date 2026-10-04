@@ -158,6 +158,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  justify-self: end;
   padding: 5px;
   border: 1px solid var(--line);
   border-radius: 8px;
