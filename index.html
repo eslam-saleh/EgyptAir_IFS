@@ -1553,7 +1553,7 @@ async function sha256Hex(value) {
           if (attempt < SHEET_MAX_ATTEMPTS) {
             setStatus(tableStatus, t(
               `Loading failed, retrying (${attempt + 1}/${SHEET_MAX_ATTEMPTS})...`,
-              `فشل التحميل، جارٍ إعادة المحاولة (${attempt + 1}/${SHEET_MAX_ATTEMPTS})...`
+              `تعطل الاتصال بالانترنت، جارٍ إعادة المحاولة (${attempt + 1}/${SHEET_MAX_ATTEMPTS})...`
             ));
             await sleep(1000 * attempt);
             if (requestId !== latestSheetRequestId) return;
@@ -1914,8 +1914,8 @@ async function sha256Hex(value) {
           ? (emailSent
               ? t('Reservation confirmed and email sent.', 'تم تأكيد الحجز وإرسال البريد الإلكتروني.')
               : emailAllowed
-                ? t('Reservation confirmed (no email on file, nothing sent).', 'تم تأكيد الحجز (لا يوجد بريد إلكتروني، لم يتم إرسال رسالة).')
-                : t('Reservation confirmed (no email sent — only rejections and "اقرب وقت" requests get emails).', 'تم تأكيد الحجز (لم يتم إرسال بريد إلكتروني — يتم الإرسال فقط للرفض وطلبات "اقرب وقت").'))
+                ? t('Reservation confirmed (no email on file, nothing sent).', 'تم تأكيد الحجز.')
+                : t('Reservation confirmed (no email sent — only rejections and "اقرب وقت" requests get emails).', 'تم تأكيد الحجز").'))
           : (emailSent
               ? t('Reservation denied and email sent.', 'تم رفض الحجز وإرسال البريد الإلكتروني.')
               : t('Reservation denied (no email on file, nothing sent).', 'تم رفض الحجز (لا يوجد بريد إلكتروني، لم يتم إرسال رسالة).'))
