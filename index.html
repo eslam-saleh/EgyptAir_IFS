@@ -1276,9 +1276,7 @@ async function sha256Hex(value) {
     let newRowHighlights = {};       // rowKey -> timestamp when highlight ends
 
     function rowKey(row) {
-      const tsIdx = getColumnIndexByKey('timestamp');
-      const ts = tsIdx >= 0 ? String(row.values[tsIdx] ?? '').trim() : '';
-      return ts || row.values.join('|');
+      return row.key || row.values.join('|');
     }
 
     function trackNewRows() {
@@ -2079,37 +2077,38 @@ async function sha256Hex(value) {
       // so Arabic-Indic digit codes survive instead of being nulled out).
       // Remember not-yet-saved "اقرب وقت" date picks by the row's timestamp, so a
       // background refresh (or a purge that shifts row numbers) can't wipe or misplace them.
+      // Rows are identified by timestamp + employee code, so two submissions in
+      // the same second can't inherit each other's pick.
       const prevPicks = {};
-      const prevTsIdx = getColumnIndexByKey('timestamp');
-      if (prevTsIdx >= 0) {
-        clinicRows.forEach(r => {
-          if (nearestTimeDates[r.sheetRow]) prevPicks[String(r.values[prevTsIdx] ?? '').trim()] = nearestTimeDates[r.sheetRow];
-        });
-      }
+      clinicRows.forEach(r => {
+        if (nearestTimeDates[r.sheetRow]) prevPicks[r.key] = nearestTimeDates[r.sheetRow];
+      });
 
       clinicColumns = (response.headers || []).map(label => ({ label }));
       const reservedIndex = clinicColumns.findIndex(isReservedColumn);
+      const keyTsIdx = getColumnIndexByKey('timestamp');
+      const keyCodeIdx = clinicColumns.findIndex(isCodeColumn);
       clinicRows = (response.rows || []).map((row, index) => {
         const values = clinicColumns.map((column, colIndex) => {
           let val = row[colIndex] ?? '';
           if (isCodeColumn(column)) val = normalizeDigits(val);
           return val;
         });
+        const key = String(values[keyTsIdx >= 0 ? keyTsIdx : 0] ?? '').trim() + '|' +
+          (keyCodeIdx >= 0 ? normalizeDigits(values[keyCodeIdx]).trim() : '');
         return {
           sheetRow: index + 2,
+          key,
           values,
           isReserved: String(values[reservedIndex] || '').trim().toLowerCase()
         };
       });
 
       nearestTimeDates = {};
-      const newTsIdx = getColumnIndexByKey('timestamp');
-      if (newTsIdx >= 0) {
-        clinicRows.forEach(r => {
-          const pick = prevPicks[String(r.values[newTsIdx] ?? '').trim()];
-          if (pick && r.isReserved !== 'y' && r.isReserved !== 'n') nearestTimeDates[r.sheetRow] = pick;
-        });
-      }
+      clinicRows.forEach(r => {
+        const pick = prevPicks[r.key];
+        if (pick && r.isReserved !== 'y' && r.isReserved !== 'n') nearestTimeDates[r.sheetRow] = pick;
+      });
 
       trackNewRows();
       populateDaySelect(); // must run before rendering: the table filters by it
@@ -2451,8 +2450,8 @@ async function sha256Hex(value) {
         url.searchParams.set('isReserved', decision);
         // Row numbers shift when old rows are purged, so also send the row's
         // submission timestamp; the backend refuses the write if it no longer matches.
-        const tsIdx = getColumnIndexByKey('timestamp');
-        url.searchParams.set('ts', String(tsIdx >= 0 ? row.values[tsIdx] : row.values[0] ?? '').trim());
+        // Timestamp + employee code: unique even for same-second submissions.
+        url.searchParams.set('key', row.key);
         // When the patient chose "اقرب وقت", also write the admin-picked
         // date into the sheet so later inquiries see the real date.
         if (chosenDateIso) {
